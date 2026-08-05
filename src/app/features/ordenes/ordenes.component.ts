@@ -7,6 +7,7 @@ import { OrdenService } from './orden.service';
 import { EstadoOrdenService } from './estado.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { ProductoService } from '../productos/producto.service';
 import { environment } from '../../../environments/environment';
 import { Orden, HistorialEntry, HistorialRequest, Estado, Producto, OrdenRequest } from '../../shared/models/models';
@@ -66,6 +67,7 @@ export class OrdenesComponent implements OnInit {
     private readonly estadoOrdenService: EstadoOrdenService,
     private readonly authService: AuthService,
     private readonly toast: ToastService,
+    private readonly confirmService: ConfirmService,
     private readonly fb: FormBuilder,
     private readonly cdr: ChangeDetectorRef,
     private readonly http: HttpClient,
@@ -76,6 +78,7 @@ export class OrdenesComponent implements OnInit {
     this.initHistorialForm();
     this.estadoOrdenService.getAll().subscribe(data => {
       this.estadosDisponibles = data;
+      this.cdr.detectChanges();
     });
     if (this.esCliente) {
       this.ordenService.getMisOrdenes().subscribe();
@@ -153,8 +156,13 @@ export class OrdenesComponent implements OnInit {
     return o.historial ?? [];
   }
 
-  cancelarOrden(o: Orden): void {
-    if (!confirm('¿Cancelar esta orden? Esta acción no se puede deshacer.')) return;
+  async cancelarOrden(o: Orden): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Cancelar orden',
+      `¿Cancelar la orden #${o.id}? Esta acción no se puede deshacer.`,
+      { labelAceptar: 'Sí, cancelar', tipo: 'danger' },
+    );
+    if (!ok) return;
     const estado = this.estadosDisponibles.find(e => e.nombre.toLowerCase() === 'cancelado');
     const dto: HistorialRequest = {
       estadoId:    estado?.id ?? '00000000-0000-0000-0000-000000000006',
@@ -166,12 +174,17 @@ export class OrdenesComponent implements OnInit {
         this.toast.success('Orden cancelada', `La orden #${o.id} fue cancelada.`);
         this.ordenService.getMisOrdenes().subscribe();
       },
-      error: () => {},
+      error: () => this.toast.error('No se pudo completar la acción', 'Intenta nuevamente.'),
     });
   }
 
-  confirmarEntrega(o: Orden): void {
-    if (!confirm('¿Confirmar que recibiste este pedido?')) return;
+  async confirmarEntrega(o: Orden): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Confirmar recepción',
+      `¿Confirmar que recibiste el pedido #${o.id}?`,
+      { labelAceptar: 'Sí, confirmar', tipo: 'info' },
+    );
+    if (!ok) return;
     const estado = this.estadosDisponibles.find(e => e.nombre.toLowerCase() === 'entregado');
     const dto: HistorialRequest = {
       estadoId:    estado?.id ?? '00000000-0000-0000-0000-000000000005',
@@ -183,7 +196,7 @@ export class OrdenesComponent implements OnInit {
         this.toast.success('¡Recibo confirmado!', `Confirmaste la recepción del pedido #${o.id}.`);
         this.ordenService.getMisOrdenes().subscribe();
       },
-      error: () => {},
+      error: () => this.toast.error('No se pudo completar la acción', 'Intenta nuevamente.'),
     });
   }
 
@@ -281,7 +294,7 @@ export class OrdenesComponent implements OnInit {
         this.cerrarNuevoPedido();
         this.ordenService.getMisOrdenes().subscribe();
       },
-      error: () => { this.procesandoOrden = false; },
+      error: () => { this.procesandoOrden = false; this.cdr.detectChanges(); },
     });
   }
 }

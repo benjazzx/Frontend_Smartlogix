@@ -8,6 +8,7 @@ import { ThemeService, AppTheme } from './core/services/theme.service';
 import { UsuarioSesion } from './shared/models/models';
 import { combineLatest, Subscription } from 'rxjs';
 import { ToastComponent } from './shared/components/toast/toast.component';
+import { ConfirmModalComponent } from './shared/components/confirm-modal/confirm-modal.component';
 
 interface NavItem {
   label: string;
@@ -26,7 +27,7 @@ interface Notificacion {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, ToastComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, ToastComponent, ConfirmModalComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -34,6 +35,7 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'SmartLogix';
   showNotifPanel  = false;
   showThemePicker = false;
+  sidebarOpen     = false;
   notificacionesList: Notificacion[] = [];
   private notifSub!: Subscription;
 

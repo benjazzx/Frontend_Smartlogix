@@ -1,38 +1,40 @@
 <app-toast />
+<app-confirm-modal />
 
 @if (!authService.isLoggedIn()) {
   <router-outlet />
 } @else {
-<div class="flex h-screen bg-gray-50 overflow-hidden">
+<div class="flex h-screen bg-gray-50 overflow-hidden relative">
+
+  <!-- Backdrop móvil -->
+  @if (sidebarOpen) {
+    <div class="fixed inset-0 bg-black/50 z-30 md:hidden" (click)="sidebarOpen = false"></div>
+  }
 
   <!-- ===================== SIDEBAR ===================== -->
-  <aside class="w-60 flex flex-col flex-shrink-0 shadow-xl transition-all duration-300"
+  <aside class="fixed md:static inset-y-0 left-0 z-40 w-64 md:w-60 flex flex-col flex-shrink-0 shadow-2xl transition-transform duration-300 ease-in-out md:translate-x-0"
+    [class.-translate-x-full]="!sidebarOpen"
     [style.background]="themeService.current.gradient">
 
     <!-- Logo -->
-    <div class="px-5 py-5 border-b border-white/10">
+    <div class="px-5 py-5 border-b sl-border" style="border-color: var(--sl-border)">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
-          [style.background-color]="themeService.current.accent">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            [style.color]="themeService.current.accentText">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 sl-accent-bg">
+          <svg class="w-5 h-5 sl-accent-fg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
               d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
         <div>
           <div class="text-sm font-bold leading-none text-white tracking-wide">SmartLogix</div>
-          <div class="text-xs mt-1 font-medium" [style.color]="themeService.current.subtext">
-            Softyz Deliver
-          </div>
+          <div class="text-xs mt-1 font-medium sl-subtext">Softyz Deliver</div>
         </div>
       </div>
     </div>
 
     <!-- Nav Items -->
     <nav class="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-      <p class="text-xs font-semibold uppercase tracking-widest px-3 mb-3"
-        [style.color]="themeService.current.subtext">
+      <p class="text-xs font-semibold uppercase tracking-widest px-3 mb-3 sl-subtext" style="font-size:10px; letter-spacing:.1em">
         Módulos
       </p>
 
@@ -40,11 +42,9 @@
         <a [routerLink]="item.route"
            routerLinkActive="nav-item-active"
            [routerLinkActiveOptions]="{ exact: false }"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
-           [style.color]="themeService.current.text"
-           [attr.data-hover-bg]="themeService.current.hover"
-           [attr.data-active-bg]="themeService.current.active">
-          <svg class="w-4 h-4 flex-shrink-0 opacity-80" fill="none" stroke="currentColor"
+           (click)="sidebarOpen = false"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium">
+          <svg class="w-4 h-4 flex-shrink-0 opacity-75" fill="none" stroke="currentColor"
             viewBox="0 0 24 24" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="item.iconPath" />
           </svg>
@@ -54,22 +54,18 @@
     </nav>
 
     <!-- Footer Sidebar / User -->
-    <div class="px-4 py-4 border-t border-white/10">
+    <div class="px-4 py-4" style="border-top: 1px solid var(--sl-border)">
       <div class="flex items-center gap-3 mb-3">
-        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 text-white shadow"
-          [style.background-color]="themeService.current.active">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 text-white shadow sl-avatar-bg">
           {{ userInitials }}
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-xs font-semibold text-white truncate">{{ currentUser?.correo ?? 'Usuario' }}</p>
-          <p class="text-xs truncate mt-0.5" [style.color]="themeService.current.subtext">
-            {{ currentUser?.rolNombre ?? '' }}
-          </p>
+          <p class="text-xs truncate mt-0.5 sl-subtext">{{ currentUser?.rolNombre ?? '' }}</p>
         </div>
       </div>
       <button (click)="logout()"
-        class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-xl transition-all duration-200 hover:bg-white/10"
-        [style.color]="themeService.current.text">
+        class="nav-item w-full flex items-center gap-2 px-3 py-2 text-xs rounded-xl">
         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -84,7 +80,7 @@
 
     <!-- BANNER MODO SIN CONEXIÓN -->
     @if (authService.isMockSession()) {
-      <div class="bg-amber-50 border-b border-amber-200 px-6 py-2 flex items-center gap-2 text-xs text-amber-800">
+      <div class="bg-amber-50 border-b border-amber-200 px-4 md:px-6 py-2 flex items-center gap-2 text-xs text-amber-800">
         <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -94,21 +90,27 @@
     }
 
     <!-- TOPBAR -->
-    <header class="bg-white border-b border-gray-100 px-6 py-3.5 flex items-center justify-between flex-shrink-0 shadow-sm">
+    <header class="bg-white border-b border-gray-100 px-4 md:px-6 py-3.5 flex items-center justify-between flex-shrink-0 topbar-shadow">
       <div class="flex items-center gap-3">
-        <h1 class="text-base font-semibold text-gray-800">{{ getRouteTitle() }}</h1>
-        <span class="hidden sm:inline text-xs text-gray-300 font-mono">|</span>
-        <span class="hidden sm:inline text-xs text-gray-400">SmartLogix v2.5</span>
+        <button (click)="sidebarOpen = !sidebarOpen"
+          class="md:hidden -ml-1.5 p-2 rounded-xl hover:bg-gray-100 transition-colors" title="Menú">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <h1 class="text-base font-semibold text-gray-800 tracking-tight">{{ getRouteTitle() }}</h1>
+        <span class="hidden sm:inline text-gray-200 font-light text-lg leading-none select-none">|</span>
+        <span class="hidden sm:inline text-xs text-gray-400 font-mono">SmartLogix v2.5</span>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5">
 
         <!-- Selector de tema -->
         <div class="relative">
           <button id="theme-btn" (click)="toggleThemePicker()"
             class="p-2 rounded-xl hover:bg-gray-100 transition-colors group"
             title="Cambiar tema">
-            <svg class="w-4.5 h-4.5 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
             </svg>
@@ -116,27 +118,27 @@
 
           @if (showThemePicker) {
             <div id="theme-panel"
-              class="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+              class="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
               <div class="px-4 py-3 border-b border-gray-50">
-                <p class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Paleta de colores</p>
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Paleta de colores</p>
               </div>
-              <div class="p-3 grid grid-cols-3 gap-2">
+              <div class="p-3 grid grid-cols-4 gap-2">
                 @for (theme of themeService.themes; track theme.id) {
                   <button (click)="selectTheme(theme)"
-                    class="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-150 hover:bg-gray-50"
-                    [class.ring-2]="themeService.current.id === theme.id"
-                    [style.--tw-ring-color]="theme.swatch">
-                    <div class="w-8 h-8 rounded-full shadow-md border-2 border-white transition-transform hover:scale-110"
-                      [style.background-color]="theme.swatch">
+                    class="flex flex-col items-center gap-1.5 p-1.5 rounded-xl transition-all duration-150 hover:bg-gray-50"
+                    [title]="theme.label">
+                    <div class="relative w-8 h-8 rounded-full shadow border-2 transition-transform hover:scale-110"
+                      [style.background]="theme.gradient"
+                      [class]="themeService.current.id === theme.id ? 'border-gray-400 scale-110' : 'border-white'">
                       @if (themeService.current.id === theme.id) {
-                        <div class="w-full h-full rounded-full flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full flex items-center justify-center bg-black/20">
                           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                           </svg>
                         </div>
                       }
                     </div>
-                    <span class="text-xs text-gray-600 font-medium leading-none">{{ theme.label }}</span>
+                    <span class="text-xs text-gray-500 font-medium leading-none truncate w-full text-center" style="font-size:9px">{{ theme.label }}</span>
                   </button>
                 }
               </div>
@@ -147,8 +149,9 @@
         <!-- Notificaciones -->
         <div class="relative">
           <button id="notif-btn" (click)="toggleNotifPanel()"
-            class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
-            <svg class="w-4.5 h-4.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            title="Notificaciones">
+            <svg class="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
@@ -163,10 +166,10 @@
             <div id="notif-panel"
               class="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
               <div class="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
-                <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Notificaciones</span>
+                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Notificaciones</span>
                 @if (notificaciones > 0) {
-                  <span class="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-semibold">
-                    {{ notificaciones }} alerta{{ notificaciones !== 1 ? 's' : '' }}
+                  <span class="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-semibold">
+                    {{ notificaciones }} nueva{{ notificaciones !== 1 ? 's' : '' }}
                   </span>
                 }
               </div>
@@ -188,7 +191,7 @@
                         <span class="mt-0.5 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
                           [class]="n.tipo === 'danger' ? 'bg-red-100' : n.tipo === 'warning' ? 'bg-amber-100' : 'bg-blue-100'">
                           <svg class="w-3.5 h-3.5"
-                            [class]="n.tipo === 'danger' ? 'text-red-600' : n.tipo === 'warning' ? 'text-amber-600' : 'text-blue-600'"
+                            [class]="n.tipo === 'danger' ? 'text-red-500' : n.tipo === 'warning' ? 'text-amber-500' : 'text-blue-500'"
                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="n.icono" />
                           </svg>
@@ -207,21 +210,20 @@
         <div class="w-px h-5 bg-gray-200 mx-1"></div>
 
         <!-- Estado sistema -->
-        <div class="flex items-center gap-1.5 text-xs text-gray-400 pr-1">
-          <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span class="hidden sm:inline">Operativo</span>
+        <div class="flex items-center gap-1.5 text-xs text-gray-400 px-1">
+          <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+          <span class="hidden sm:inline text-xs">Operativo</span>
         </div>
 
         <!-- Avatar usuario -->
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-sm"
-          [style.background-color]="themeService.current.avatarBg">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-sm sl-avatar-bg">
           {{ userInitials }}
         </div>
       </div>
     </header>
 
     <!-- PAGE CONTENT -->
-    <main class="flex-1 overflow-y-auto p-6 bg-gray-50">
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
       <router-outlet />
     </main>
   </div>

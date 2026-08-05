@@ -58,6 +58,7 @@ export class EnviosComponent implements OnInit {
     this.initForm();
     this.estadoOrdenService.getAll().subscribe(data => {
       this.estadosEnvio = data.filter(e => this.estadosEnvioNombres.includes(e.nombre));
+      this.cdr.detectChanges();
     });
     this.ordenService.getAll().subscribe();
     this.ordenService.ordenes$.subscribe(o => {
@@ -100,7 +101,7 @@ export class EnviosComponent implements OnInit {
     };
     this.ordenService.agregarHistorial(this.ordenSeleccionada.id, dto).subscribe({
       next: () => this.cerrarModal(),
-      error: () => { this.guardando = false; },
+      error: () => { this.guardando = false; this.cdr.detectChanges(); },
     });
   }
 

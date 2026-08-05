@@ -35,7 +35,7 @@ export class LoginComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.loading) return;
     this.loading = true;
     this.errorMsg = '';
     this.authService.login(this.form.value).subscribe({
