@@ -4,7 +4,6 @@ export const environment = {
   services: {
     auth:        '/auth',
     registro:    '/auth/register',
-    recuperar:   '/auth/recuperar-clave',
     usuarios:    '/api/users',
     direcciones: '/api/direcciones',
     roles:       '/api/roles',

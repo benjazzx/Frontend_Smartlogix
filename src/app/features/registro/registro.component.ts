@@ -1,14 +1,9 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-
-function passwordMatch(control: AbstractControl): ValidationErrors | null {
-  const clave = control.get('clave')?.value;
-  const confirmar = control.get('confirmarClave')?.value;
-  return clave && confirmar && clave !== confirmar ? { noCoinciden: true } : null;
-}
+import { passwordStrength, passwordMatchValidator, rutValidator, normalizarRut } from '../../shared/validators/form-validators';
 
 @Component({
   selector: 'app-registro',
@@ -32,18 +27,19 @@ export class RegistroComponent {
     this.form = this.fb.group({
       nombre:         ['', [Validators.required, Validators.minLength(2)]],
       apellido:       ['', [Validators.required, Validators.minLength(2)]],
-      rut:            ['', [Validators.required, Validators.minLength(7), Validators.maxLength(12)]],
+      rut:            ['', [Validators.required, rutValidator]],
       correo:         ['', [Validators.required, Validators.email]],
-      clave:          ['', [Validators.required, Validators.minLength(6)]],
+      clave:          ['', [Validators.required, passwordStrength]],
       confirmarClave: ['', Validators.required],
-    }, { validators: passwordMatch });
+    }, { validators: passwordMatchValidator('clave', 'confirmarClave') });
   }
 
   onSubmit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.loading) return;
     this.loading = true;
     this.error = '';
     const { confirmarClave, ...dto } = this.form.value;
+    dto.rut = normalizarRut(dto.rut);
     this.authService.registrar(dto).subscribe({
       next: () => {
         // Auto-login inmediato con las mismas credenciales
@@ -56,8 +52,9 @@ export class RegistroComponent {
           },
         });
       },
-      error: () => {
-        this.error = 'No se pudo completar el registro. Intenta nuevamente.';
+      error: (err) => {
+        const backendMsg = typeof err?.error === 'string' ? err.error : err?.error?.mensaje;
+        this.error = backendMsg || 'No se pudo completar el registro. Intenta nuevamente.';
         this.loading = false;
         this.cdr.detectChanges();
       },

@@ -16,7 +16,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       switch (error.status) {
         case 0:
-          // Sin conexión con el Gateway/backend
           if (isWrite) {
             toast.warning(
               'Sin conexión con el servidor',

@@ -53,8 +53,14 @@
             <input type="text" formControlName="rut"
               class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
               placeholder="12.345.678-9">
-            @if (form.get('rut')?.touched && form.get('rut')?.invalid) {
-              <p class="text-xs text-red-500 mt-1">Ingresa un RUT válido (ej: 12.345.678-9).</p>
+            @if (form.get('rut')?.touched && form.get('rut')?.hasError('required')) {
+              <p class="text-xs text-red-500 mt-1">El RUT es obligatorio.</p>
+            }
+            @if (form.get('rut')?.touched && form.get('rut')?.hasError('rutFormato')) {
+              <p class="text-xs text-red-500 mt-1">Formato inválido (ej: 12.345.678-9).</p>
+            }
+            @if (form.get('rut')?.touched && form.get('rut')?.hasError('rutInvalido')) {
+              <p class="text-xs text-red-500 mt-1">El dígito verificador no es correcto.</p>
             }
           </div>
 
@@ -75,7 +81,7 @@
             <div class="relative">
               <input [type]="showPassword ? 'text' : 'password'" formControlName="clave"
                 class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 transition pr-10"
-                placeholder="Mínimo 6 caracteres">
+                placeholder="Mín. 8 caracteres, 1 mayúscula y 1 símbolo">
               <button type="button" (click)="showPassword = !showPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +91,20 @@
               </button>
             </div>
             @if (form.get('clave')?.touched && form.get('clave')?.invalid) {
-              <p class="text-xs text-red-500 mt-1">Mínimo 6 caracteres.</p>
+              <ul class="text-xs text-red-500 mt-1 space-y-0.5">
+                @if (form.get('clave')?.hasError('required')) {
+                  <li>La contraseña es obligatoria.</li>
+                }
+                @if (form.get('clave')?.hasError('minLength8')) {
+                  <li>Debe tener al menos 8 caracteres.</li>
+                }
+                @if (form.get('clave')?.hasError('mayuscula')) {
+                  <li>Debe incluir al menos una mayúscula.</li>
+                }
+                @if (form.get('clave')?.hasError('simbolo')) {
+                  <li>Debe incluir al menos un símbolo especial (!&#64;#$%...).</li>
+                }
+              </ul>
             }
           </div>
 

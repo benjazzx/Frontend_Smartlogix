@@ -116,15 +116,21 @@ export class AuthService {
     return raw ? JSON.parse(raw) : null;
   }
 
-  validarIdentidad(correo: string, rut: string): Observable<{ valido: boolean }> {
-    return this.http.post<{ valido: boolean }>(`${environment.services.recuperar}`, { correo, rut }).pipe(
-      catchError(() => of({ valido: false })),
+  solicitarRecuperacion(correo: string): Observable<{ solicitudId: string }> {
+    return this.http.post<{ solicitudId: string }>('/auth/solicitar-recuperacion', { correo }).pipe(
+      catchError(err => throwError(() => err)),
     );
   }
 
-  cambiarClave(correo: string, rut: string, nuevaClave: string): Observable<{ mensaje: string }> {
-    return this.http.post<{ mensaje: string }>('/auth/cambiar-clave', { correo, rut, nuevaClave }).pipe(
-      catchError(() => of({ mensaje: 'No se pudo actualizar la contraseña. Intenta nuevamente.' })),
+  verificarRecuperacion(solicitudId: string, correo: string, rut: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>('/auth/verificar-recuperacion', { solicitudId, correo, rut }).pipe(
+      catchError(err => throwError(() => err)),
+    );
+  }
+
+  cambiarClave(solicitudId: string, nuevaClave: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>('/auth/cambiar-clave', { solicitudId, nuevaClave }).pipe(
+      catchError(err => throwError(() => err)),
     );
   }
 
