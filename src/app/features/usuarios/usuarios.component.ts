@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UsuarioService, RolService } from './usuario.service';
 import { Usuario, Rol } from '../../shared/models/models';
+import { ConfirmService } from '../../core/services/confirm.service';
 
 @Component({
   selector: 'app-usuarios',
@@ -23,6 +24,7 @@ export class UsuariosComponent implements OnInit {
   constructor(
     private usuarioService: UsuarioService,
     private rolService: RolService,
+    private readonly confirmService: ConfirmService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
   ) {}
@@ -65,8 +67,13 @@ export class UsuariosComponent implements OnInit {
     this.closeModal();
   }
 
-  onDelete(id: string): void {
-    if (!confirm('¿Eliminar este usuario?')) return;
+  async onDelete(id: string): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Eliminar usuario',
+      'Esta acción eliminará el usuario permanentemente.',
+      { labelAceptar: 'Eliminar', tipo: 'danger' },
+    );
+    if (!ok) return;
     this.usuarioService.delete(id).subscribe();
   }
 

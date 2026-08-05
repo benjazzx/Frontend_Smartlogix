@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { InventarioService } from './inventario.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import {
   Bodega, BodegaRequest,
   Pasillo, PasilloRequest,
@@ -38,6 +39,7 @@ export class InventarioComponent implements OnInit {
 
   constructor(
     private readonly inventarioService: InventarioService,
+    private readonly confirmService: ConfirmService,
     private readonly fb: FormBuilder,
     private readonly cdr: ChangeDetectorRef,
   ) {}
@@ -143,14 +145,31 @@ export class InventarioComponent implements OnInit {
     });
   }
 
-  deleteBodega(id: number): void {
-    if (confirm('¿Eliminar esta bodega?')) { this.inventarioService.deleteBodega(id).subscribe(); }
+  async deleteBodega(id: number): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Eliminar bodega',
+      'Esta acción eliminará la bodega permanentemente.',
+      { labelAceptar: 'Eliminar', tipo: 'danger' },
+    );
+    if (ok) this.inventarioService.deleteBodega(id).subscribe();
   }
-  deletePasillo(id: number): void {
-    if (confirm('¿Eliminar este pasillo?')) { this.inventarioService.deletePasillo(id).subscribe(); }
+
+  async deletePasillo(id: number): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Eliminar pasillo',
+      'Esta acción eliminará el pasillo permanentemente.',
+      { labelAceptar: 'Eliminar', tipo: 'danger' },
+    );
+    if (ok) this.inventarioService.deletePasillo(id).subscribe();
   }
-  deleteEstPasi(id: number): void {
-    if (confirm('¿Quitar este estante del pasillo?')) { this.inventarioService.deleteEstPasi(id).subscribe(); }
+
+  async deleteEstPasi(id: number): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Quitar estante del pasillo',
+      '¿Deseas quitar este estante del pasillo? El estante no será eliminado.',
+      { labelAceptar: 'Quitar', tipo: 'warning' },
+    );
+    if (ok) this.inventarioService.deleteEstPasi(id).subscribe();
   }
 
   toggleBodega(b: Bodega): void {
