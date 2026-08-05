@@ -210,6 +210,10 @@ export interface Producto {
   idPasillo?: number;
   idEstante?: number;
   pais?: string;
+  creadoPorId?: string;
+  creadoPorNombre?: string;
+  modificadoPorId?: string;
+  modificadoPorNombre?: string;
   fechaCreacion?: string;
   fechaActualizacion?: string;
 }
@@ -225,6 +229,58 @@ export interface ProductoRequest {
   idPasillo?: number;
   idEstante?: number;
   pais?: string;
+}
+
+export type TipoAccionHistorial =
+  | 'CREADO'
+  | 'STOCK_AUMENTADO'
+  | 'STOCK_DECREMENTADO'
+  | 'DESACTIVADO'
+  | 'REACTIVADO'
+  | 'UBICACION_CAMBIADA';
+
+export interface HistorialStock {
+  id: number;
+  productoId: string;
+  productoNombre: string;
+  cantidadAnterior: number;
+  cantidadNueva: number;
+  modificadoPorId?: string;
+  modificadoPorNombre?: string;
+  tipoAccion: TipoAccionHistorial;
+  descripcion?: string;
+  idEstanteAnterior?: number;
+  idEstanteNuevo?: number;
+  ordenId?: number;
+  fecha: string;
+}
+
+export interface HistorialStockPage {
+  content: HistorialStock[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+// --- AUDITORÍA / SEGURIDAD ---
+
+export interface PreguntaSecreta {
+  id: string;
+  pregunta: string;
+  activa?: boolean;
+}
+
+export interface ConfigurarPreguntasRequest {
+  respuestas: { preguntaId: string; respuesta: string }[];
+}
+
+export interface BodegueroActividad {
+  userId: string;
+  nombre: string;
+  correo: string;
+  ultimoAcceso?: string;
+  cantidadProductosGestionados: number;
 }
 
 // --- ÓRDENES ---

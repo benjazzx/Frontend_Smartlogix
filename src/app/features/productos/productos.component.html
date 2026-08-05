@@ -40,7 +40,7 @@
         </select>
         <select [(ngModel)]="filtroBodegaId" [ngModelOptions]="{standalone: true}"
           class="px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Todas las bodegas</option>
+          <option [value]="null">Todas las bodegas</option>
           @for (b of bodegas; track b.idBodega) {
             <option [value]="b.idBodega">{{ b.nombre }}</option>
           }
@@ -152,6 +152,13 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  </button>
+                  <button (click)="abrirHistorial(p)" title="Ver historial"
+                    class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                   </button>
                   <button (click)="openEdit(p)" title="Editar"
@@ -523,6 +530,71 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+}
+
+<!-- ===== MODAL HISTORIAL DE AUDITORÍA ===== -->
+@if (showHistorialModal) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+
+      <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-800">Historial de auditoría</h3>
+          <p class="text-xs text-gray-400">{{ historialProducto?.nombre }}</p>
+        </div>
+        <button (click)="cerrarHistorialModal()" class="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+        @if (cargandoHistorial) {
+          <div class="flex justify-center py-10">
+            <svg class="animate-spin w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          </div>
+        } @else if (historial.length === 0) {
+          <p class="text-xs text-gray-400 text-center py-10">Sin movimientos registrados para este producto.</p>
+        } @else {
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-left text-gray-400 uppercase tracking-widest">
+                <th class="py-2 pr-3 font-semibold">Fecha</th>
+                <th class="py-2 pr-3 font-semibold">Acción</th>
+                <th class="py-2 pr-3 font-semibold text-right">Stock ant.</th>
+                <th class="py-2 pr-3 font-semibold text-right">Stock nuevo</th>
+                <th class="py-2 pr-3 font-semibold">Quién</th>
+                <th class="py-2 font-semibold">Descripción</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              @for (h of historial; track h.id) {
+                <tr>
+                  <td class="py-2 pr-3 text-gray-500 whitespace-nowrap">{{ h.fecha | date:'yyyy-MM-dd HH:mm' }}</td>
+                  <td class="py-2 pr-3">
+                    <span class="px-2 py-0.5 rounded-full whitespace-nowrap" [class]="tipoAccionClase(h.tipoAccion)">
+                      {{ tipoAccionLabel(h.tipoAccion) }}
+                    </span>
+                  </td>
+                  <td class="py-2 pr-3 text-right font-mono text-gray-500">{{ h.cantidadAnterior }}</td>
+                  <td class="py-2 pr-3 text-right font-mono text-gray-700">{{ h.cantidadNueva }}</td>
+                  <td class="py-2 pr-3 text-gray-600 whitespace-nowrap">
+                    {{ h.modificadoPorNombre ?? (h.ordenId ? 'Cliente (orden #' + h.ordenId + ')' : 'Sistema') }}
+                  </td>
+                  <td class="py-2 text-gray-500">{{ h.descripcion ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
     </div>
   </div>
 }

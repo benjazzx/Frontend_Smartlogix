@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ProductoService } from './producto.service';
 import { InventarioService } from '../inventario/inventario.service';
-import { Producto, ProductoRequest, Categoria, Bodega, Pasillo, Estante } from '../../shared/models/models';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { ToastService } from '../../core/services/toast.service';
+import { Producto, ProductoRequest, Categoria, Bodega, Pasillo, Estante, HistorialStock } from '../../shared/models/models';
 
 @Component({
   selector: 'app-productos',
@@ -43,6 +45,12 @@ export class ProductosComponent implements OnInit {
   categoriaEditando:  Categoria | null = null;
   categoriaForm!: FormGroup;
 
+  // Historial de auditoría
+  showHistorialModal   = false;
+  historialProducto:   Producto | null = null;
+  historial:           HistorialStock[] = [];
+  cargandoHistorial    = false;
+
   get paisesList(): string[] {
     return [...new Set(this.productos.map(p => p.pais ?? 'Chile').filter(Boolean))].sort();
   }
@@ -60,6 +68,8 @@ export class ProductosComponent implements OnInit {
   constructor(
     private productoService:   ProductoService,
     private inventarioService: InventarioService,
+    private readonly confirmService: ConfirmService,
+    private readonly toast: ToastService,
     private fb:  FormBuilder,
     private cdr: ChangeDetectorRef,
   ) {}
@@ -73,9 +83,9 @@ export class ProductosComponent implements OnInit {
     this.inventarioService.getBodegas().subscribe();
     this.inventarioService.getPasillos().subscribe();
     this.inventarioService.getEstantes().subscribe();
-    this.inventarioService.bodegas$.subscribe(b  => { this.bodegas     = b; });
-    this.inventarioService.pasillos$.subscribe(p => { this.allPasillos = p; });
-    this.inventarioService.estantes$.subscribe(e => { this.allEstantes = e; });
+    this.inventarioService.bodegas$.subscribe(b  => { this.bodegas     = b; this.cdr.detectChanges(); });
+    this.inventarioService.pasillos$.subscribe(p => { this.allPasillos = p; this.cdr.detectChanges(); });
+    this.inventarioService.estantes$.subscribe(e => { this.allEstantes = e; this.cdr.detectChanges(); });
   }
 
   // ── PRODUCTOS ────────────────────────────────────────────────────────────
@@ -181,8 +191,13 @@ export class ProductosComponent implements OnInit {
     this.closeModal();
   }
 
-  onDelete(id: string): void {
-    if (!confirm('¿Eliminar este producto?')) return;
+  async onDelete(id: string): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Eliminar producto',
+      'Esta acción eliminará el producto permanentemente.',
+      { labelAceptar: 'Eliminar', tipo: 'danger' },
+    );
+    if (!ok) return;
     this.productoService.delete(id).subscribe();
   }
 
@@ -210,14 +225,15 @@ export class ProductosComponent implements OnInit {
     this.imagenFile        = null;
     this.imagenPreview     = null;
     this.subiendoImagen    = false;
+    this.cdr.detectChanges();
   }
 
   onImagenSeleccionada(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file  = input.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Solo se permiten archivos de imagen.'); return; }
-    if (file.size > 5 * 1024 * 1024)    { alert('La imagen no puede superar 5 MB.'); return; }
+    if (!file.type.startsWith('image/')) { this.toast.error('Formato inválido', 'Solo se permiten archivos de imagen.'); return; }
+    if (file.size > 5 * 1024 * 1024)    { this.toast.error('Archivo muy grande', 'La imagen no puede superar 5 MB.'); return; }
     this.imagenFile = file;
     const reader = new FileReader();
     reader.onload = (e) => { this.imagenPreview = e.target?.result as string; this.cdr.detectChanges(); };
@@ -229,17 +245,65 @@ export class ProductosComponent implements OnInit {
     this.subiendoImagen = true;
     this.productoService.subirImagen(this.productoImagenId, this.imagenFile).subscribe({
       next: () => this.cerrarImagenModal(),
-      error: () => { this.subiendoImagen = false; },
+      error: () => { this.subiendoImagen = false; this.cdr.detectChanges(); },
     });
   }
 
-  eliminarImagen(id: string): void {
-    if (!confirm('¿Eliminar la imagen del producto?')) return;
+  async eliminarImagen(id: string): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Eliminar imagen',
+      '¿Deseas eliminar la imagen de este producto?',
+      { labelAceptar: 'Eliminar', tipo: 'warning' },
+    );
+    if (!ok) return;
     this.productoService.eliminarImagen(id).subscribe();
   }
 
   formatCurrency(v: number): string {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v ?? 0);
+  }
+
+  // Historial de auditoría
+  abrirHistorial(p: Producto): void {
+    this.historialProducto = p;
+    this.historial          = [];
+    this.showHistorialModal = true;
+    this.cargandoHistorial  = true;
+    this.productoService.getHistorialStock(p.id).subscribe(data => {
+      this.historial         = data;
+      this.cargandoHistorial = false;
+      this.cdr.detectChanges();
+    });
+  }
+
+  cerrarHistorialModal(): void {
+    this.showHistorialModal = false;
+    this.historialProducto  = null;
+    this.historial          = [];
+  }
+
+  tipoAccionLabel(tipo: string): string {
+    const labels: Record<string, string> = {
+      CREADO: 'Creado',
+      STOCK_AUMENTADO: 'Stock aumentado',
+      STOCK_DECREMENTADO: 'Stock disminuido',
+      DESACTIVADO: 'Desactivado',
+      REACTIVADO: 'Reactivado',
+      UBICACION_CAMBIADA: 'Ubicación cambiada',
+    };
+    return labels[tipo] ?? tipo;
+  }
+
+  tipoAccionClase(tipo: string): string {
+    const clases: Record<string, string> = {
+      CREADO: 'bg-blue-50 text-blue-700',
+      STOCK_AUMENTADO: 'bg-green-50 text-green-700',
+      STOCK_DECREMENTADO: 'bg-yellow-50 text-yellow-700',
+      DESACTIVADO: 'bg-red-50 text-red-700',
+      REACTIVADO: 'bg-green-50 text-green-700',
+      UBICACION_CAMBIADA: 'bg-purple-50 text-purple-700',
+    };
+    return clases[tipo] ?? 'bg-gray-100 text-gray-600';
   }
 
   // ── CATEGORÍAS ───────────────────────────────────────────────────────────
@@ -286,8 +350,13 @@ export class ProductosComponent implements OnInit {
     return this.productos.filter(p => p.categoriaId === categoriaId).length;
   }
 
-  deleteCategoria(id: string): void {
-    if (!confirm('¿Eliminar esta categoría? Los productos asociados quedarán sin categoría.')) return;
+  async deleteCategoria(id: string): Promise<void> {
+    const ok = await this.confirmService.confirm(
+      'Eliminar categoría',
+      'Los productos asociados quedarán sin categoría.',
+      { labelAceptar: 'Eliminar', tipo: 'danger' },
+    );
+    if (!ok) return;
     this.productoService.deleteCategoria(id).subscribe();
   }
 }

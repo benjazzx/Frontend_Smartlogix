@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, catchError, tap, throwError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Producto, ProductoRequest, Categoria } from '../../shared/models/models';
+import { Producto, ProductoRequest, Categoria, HistorialStock } from '../../shared/models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ProductoService {
@@ -88,6 +88,21 @@ export class ProductoService {
         this.productosSubject.next(list);
       }),
       catchError(() => of(undefined)),
+    );
+  }
+
+  getPorBodega(bodegaId: number, pasilloId?: number, estanteId?: number): Observable<Producto[]> {
+    let params = `bodegaId=${bodegaId}`;
+    if (pasilloId) params += `&pasilloId=${pasilloId}`;
+    if (estanteId) params += `&estanteId=${estanteId}`;
+    return this.http.get<Producto[]>(`${this.baseUrl}/por-bodega?${params}`).pipe(
+      catchError(() => of([])),
+    );
+  }
+
+  getHistorialStock(id: string): Observable<HistorialStock[]> {
+    return this.http.get<HistorialStock[]>(`${this.baseUrl}/${id}/historial-stock`).pipe(
+      catchError(() => of([])),
     );
   }
 
