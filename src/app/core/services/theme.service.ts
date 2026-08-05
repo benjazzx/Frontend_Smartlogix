@@ -213,7 +213,7 @@ export class ThemeService {
     if (isPlatformBrowser(this.platformId)) {
       const saved = localStorage.getItem(this.storageKey());
       const found = THEMES.find(t => t.id === saved);
-      if (found) this._current = found;
+      if (found) this._apply(found);
     }
   }
 
@@ -247,6 +247,15 @@ export class ThemeService {
   private _apply(theme: AppTheme): void {
     this._current = theme;
     if (isPlatformBrowser(this.platformId)) {
+      const root = document.documentElement;
+      root.style.setProperty('--sl-text',        theme.text);
+      root.style.setProperty('--sl-subtext',     theme.subtext);
+      root.style.setProperty('--sl-hover',       theme.hover);
+      root.style.setProperty('--sl-active',      theme.active);
+      root.style.setProperty('--sl-accent',      theme.accent);
+      root.style.setProperty('--sl-accent-text', theme.accentText);
+      root.style.setProperty('--sl-avatar',      theme.avatarBg);
+      root.style.setProperty('--sl-border',      theme.border);
       localStorage.setItem(this.storageKey(), theme.id);
     }
   }
