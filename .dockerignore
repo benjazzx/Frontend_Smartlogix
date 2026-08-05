@@ -1,0 +1,12 @@
+node_modules
+dist
+.angular
+.git
+.vscode
+.editorconfig
+.prettierrc
+*.md
+npm-debug.log
+Dockerfile
+.dockerignore
+coverage
