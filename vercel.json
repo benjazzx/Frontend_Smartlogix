@@ -1,0 +1,10 @@
+{
+  "framework": null,
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "buildCommand": "npm run build -- --configuration production && rm -rf dist/SmartLogix/server && cp dist/SmartLogix/browser/index.csr.html dist/SmartLogix/browser/index.html",
+  "outputDirectory": "dist/SmartLogix/browser",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

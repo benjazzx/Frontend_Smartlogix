@@ -1,6 +1,13 @@
 export const environment = {
   production: false,
-  apiGateway: '',
+  apiGateway: 'https://iq86ivo531.execute-api.us-east-1.amazonaws.com',
+  cognito: {
+    domain: 'https://smartlogix-427744211591.auth.us-east-1.amazoncognito.com',
+    clientId: '4ocus6f6gtfnc2er0fg6mn9ib6',
+    redirectUri: 'http://localhost:4200',
+    scope: 'openid email profile',
+  },
+  direccionPredeterminadaId: '55994963-fd81-4ff8-89d6-92c767fcfeb5',
   services: {
     auth:        '/auth',
     registro:    '/auth/register',

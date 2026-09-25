@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { CognitoAuthService } from './core/auth/cognito-auth.service';
 import { AuthService } from './core/services/auth.service';
 import { OrdenService } from './features/ordenes/orden.service';
 import { ProductoService } from './features/productos/producto.service';
@@ -77,6 +78,9 @@ export class AppComponent implements OnInit, OnDestroy {
     },
   ];
 
+  private readonly cognitoAuth = inject(CognitoAuthService);
+  private readonly router = inject(Router);
+
   constructor(
     public authService: AuthService,
     public themeService: ThemeService,
@@ -84,7 +88,12 @@ export class AppComponent implements OnInit, OnDestroy {
     private productoService: ProductoService,
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    const justLoggedInWithCognito = await this.cognitoAuth.handleRedirectCallback();
+    if (justLoggedInWithCognito) {
+      this.router.navigate(['/dashboard']);
+    }
+
     if (this.authService.isLoggedIn()) {
       this.themeService.loadFromServer();
     }
@@ -162,7 +171,18 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   get currentUser(): UsuarioSesion | null {
-    return this.authService.getCurrentUser();
+    const legacyUser = this.authService.getCurrentUser();
+    if (legacyUser) return legacyUser;
+
+    const claims = this.cognitoAuth.getClaims();
+    if (!claims) return null;
+
+    const rolNombre = this.cognitoAuth.getRoles()[0] ?? 'cliente';
+    return {
+      userId: claims.sub,
+      correo: claims.email ?? '',
+      rolNombre: rolNombre as UsuarioSesion['rolNombre'],
+    };
   }
 
   get navItems(): NavItem[] {
@@ -184,5 +204,11 @@ export class AppComponent implements OnInit, OnDestroy {
     return map[window.location.pathname.split('/')[1]] ?? 'SmartLogix';
   }
 
-  logout(): void { this.authService.logout(); }
+  logout(): void {
+    if (this.cognitoAuth.isLoggedIn()) {
+      this.cognitoAuth.logout();
+      return;
+    }
+    this.authService.logout();
+  }
 }

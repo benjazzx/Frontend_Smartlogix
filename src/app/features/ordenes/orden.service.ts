@@ -98,6 +98,26 @@ export class OrdenService {
     );
   }
 
+  solicitarDevolucion(id: number, motivo: string): Observable<Orden> {
+    return this.http.post<Orden>(`${this.baseUrl}/${id}/solicitar-devolucion`, { motivo }).pipe(
+      tap(updated => {
+        const normalized = this.normalizeOrden(updated);
+        this.ordenesSubject.next(this.ordenesSubject.value.map(o => o.id === id ? normalized : o));
+      }),
+      catchError(err => throwError(() => err)),
+    );
+  }
+
+  resolverDevolucion(id: number, aprobada: boolean, danado: boolean, comentario?: string): Observable<Orden> {
+    return this.http.post<Orden>(`${this.baseUrl}/${id}/resolver-devolucion`, { aprobada, danado, comentario }).pipe(
+      tap(updated => {
+        const normalized = this.normalizeOrden(updated);
+        this.ordenesSubject.next(this.ordenesSubject.value.map(o => o.id === id ? normalized : o));
+      }),
+      catchError(err => throwError(() => err)),
+    );
+  }
+
   liberarOrden(id: number): Observable<Orden> {
     return this.http.post<Orden>(`${this.baseUrl}/${id}/liberar`, {}).pipe(
       tap(updated => {

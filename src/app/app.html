@@ -1,7 +1,7 @@
 <app-toast />
 <app-confirm-modal />
 
-@if (!authService.isLoggedIn()) {
+@if (!currentUser) {
   <router-outlet />
 } @else {
 <div class="flex h-screen bg-gray-50 overflow-hidden relative">

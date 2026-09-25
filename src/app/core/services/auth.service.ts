@@ -1,34 +1,27 @@
-import { Injectable, signal, PLATFORM_ID, Inject } from '@angular/core';
+import { Injectable, signal, PLATFORM_ID, Inject, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, catchError, tap, throwError, of } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginRequest, LoginResponse, UsuarioSesion } from '../../shared/models/models';
-import { ToastService } from './toast.service';
+import { CognitoAuthService } from '../auth/cognito-auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'smartlogix_token';
   private readonly USER_KEY  = 'smartlogix_user';
 
+  private readonly cognitoAuth = inject(CognitoAuthService);
   private isBrowser: boolean;
   private currentUserSubject = new BehaviorSubject<UsuarioSesion | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
 
   isLoggedIn = signal<boolean>(false);
 
-  private readonly mockUsers: Record<string, { token: string; userId: string; rolNombre: LoginResponse['rolNombre']; clave: string }> = {
-    'admin@smartlogix.cl':         { token: 'mock-token-admin',         userId: 'uuid-admin-001',         rolNombre: 'admin',         clave: 'admin123'   },
-    'bodeguero@smartlogix.cl':     { token: 'mock-token-bodeguero',     userId: 'uuid-bodeguero-001',     rolNombre: 'bodeguero',     clave: 'bodega123'  },
-    'transportista@smartlogix.cl': { token: 'mock-token-transportista', userId: 'uuid-transportista-001', rolNombre: 'transportista', clave: 'trans123'   },
-    'cliente@smartlogix.cl':       { token: 'mock-token-cliente',       userId: 'uuid-cliente-001',       rolNombre: 'cliente',       clave: 'cliente123' },
-  };
-
   constructor(
     private http: HttpClient,
     private router: Router,
-    private toast: ToastService,
     @Inject(PLATFORM_ID) platformId: object,
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
@@ -50,32 +43,12 @@ export class AuthService {
         this.currentUserSubject.next(session);
         this.isLoggedIn.set(true);
       }),
-      catchError(err => {
-        const mock = this.mockUsers[credentials.correo];
-        if (mock && credentials.clave === mock.clave) {
-          this.toast.warning(
-            'Modo sin conexión',
-            'No se pudo conectar al servidor. Usando sesión local — los cambios no se guardarán en la base de datos.',
-          );
-          const mockResponse: LoginResponse = {
-            token: mock.token, tipo: 'Bearer',
-            userId: mock.userId, correo: credentials.correo, rolNombre: mock.rolNombre,
-          };
-          const session: UsuarioSesion = { userId: mock.userId, correo: credentials.correo, rolNombre: mock.rolNombre };
-          this.storeToken(mockResponse.token);
-          this.storeUser(session);
-          this.currentUserSubject.next(session);
-          this.isLoggedIn.set(true);
-          return of(mockResponse);
-        }
-        return throwError(() => err);
-      }),
+      catchError(err => throwError(() => err)),
     );
   }
 
   isMockSession(): boolean {
-    const token = this.getToken();
-    return !!token && token.startsWith('mock-token-');
+    return false;
   }
 
   logout(): void {
@@ -85,6 +58,11 @@ export class AuthService {
     }
     this.currentUserSubject.next(null);
     this.isLoggedIn.set(false);
+
+    if (this.cognitoAuth.getIdToken()) {
+      this.cognitoAuth.logout();
+      return;
+    }
     this.router.navigate(['/login']);
   }
 
@@ -94,12 +72,26 @@ export class AuthService {
   }
 
   getCurrentUser(): UsuarioSesion | null {
-    return this.currentUserSubject.value;
+    return this.cognitoUser() ?? this.currentUserSubject.value;
   }
 
   hasRole(...roles: string[]): boolean {
-    const rol = this.currentUserSubject.value?.rolNombre;
+    const rol = this.getCurrentUser()?.rolNombre;
     return !!rol && roles.includes(rol);
+  }
+
+  private cognitoUser(): UsuarioSesion | null {
+    if (!this.cognitoAuth.isLoggedIn()) return null;
+    const claims = this.cognitoAuth.getClaims();
+    if (!claims) return null;
+    const roles = this.cognitoAuth.getRoles();
+    const prioridad = ['admin', 'bodeguero', 'transportista', 'cliente'];
+    const rol = prioridad.find(r => roles.includes(r)) ?? 'cliente';
+    return {
+      userId: claims.sub,
+      correo: claims.email ?? '',
+      rolNombre: rol as UsuarioSesion['rolNombre'],
+    };
   }
 
   private storeToken(token: string): void {

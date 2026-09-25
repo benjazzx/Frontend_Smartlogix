@@ -97,6 +97,25 @@
                       Confirmar recibo
                     </button>
                   }
+                  @if (puedeDevolucion(o)) {
+                    <button (click)="solicitarDevolucion(o)"
+                      class="px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                      title="Solicitar devolución del producto">
+                      Solicitar devolución
+                    </button>
+                  }
+                  @if (puedeResolverDevolucion(o)) {
+                    <button (click)="resolverDevolucion(o, true)"
+                      class="px-2 py-1 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                      title="Aprobar devolución">
+                      Aprobar
+                    </button>
+                    <button (click)="resolverDevolucion(o, false)"
+                      class="px-2 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                      title="Rechazar devolución">
+                      Rechazar
+                    </button>
+                  }
                   <!-- Acción para admin/bodeguero -->
                   @if (!esCliente) {
                     <button (click)="openHistorial(o)"

@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -209,7 +209,71 @@ export class OrdenesComponent implements OnInit {
     return !(o.historial ?? []).some(h => h.comentario === 'Entrega confirmada por el cliente');
   }
 
-  // â”€â”€ Nuevo Pedido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  puedeDevolucion(o: Orden): boolean {
+    return this.esCliente && o.estadoActual === 'Entregado';
+  }
+
+  puedeResolverDevolucion(o: Orden): boolean {
+    return !this.esCliente && o.estadoActual === 'Devolución solicitada';
+  }
+
+  async resolverDevolucion(o: Orden, aprobada: boolean): Promise<void> {
+    if (!aprobada) {
+      const ok = await this.confirmService.confirm(
+        'Rechazar devolución',
+        `¿Rechazar la solicitud de devolución del pedido #${o.id}?`,
+        { labelAceptar: 'Rechazar', tipo: 'danger' },
+      );
+      if (!ok) return;
+      this.enviarResolucionDevolucion(o, false, false);
+      return;
+    }
+    const ok = await this.confirmService.confirm(
+      'Aprobar devolución',
+      `¿Aprobar la devolución del pedido #${o.id}?`,
+      { labelAceptar: 'Sí, aprobar', tipo: 'warning' },
+    );
+    if (!ok) return;
+    const danado = await this.confirmService.confirm(
+      'Estado del producto',
+      '¿El producto llegó dañado? Si es así, se registrará como merma y no volverá al stock disponible.',
+      { labelAceptar: 'Sí, está dañado', labelCancelar: 'No, está en buen estado', tipo: 'warning' },
+    );
+    this.enviarResolucionDevolucion(o, true, danado);
+  }
+
+  private enviarResolucionDevolucion(o: Orden, aprobada: boolean, danado: boolean): void {
+    this.ordenService.resolverDevolucion(o.id, aprobada, danado).subscribe({
+      next: () => {
+        this.toast.success(
+          aprobada ? 'Devolución aprobada' : 'Devolución rechazada',
+          `Se resolvió la devolución del pedido #${o.id}.`,
+        );
+        if (this.esCliente) this.ordenService.getMisOrdenes().subscribe();
+        else this.ordenService.getAll().subscribe();
+      },
+      error: () => this.toast.error('No se pudo completar la acción', 'Intenta nuevamente.'),
+    });
+  }
+
+  async solicitarDevolucion(o: Orden): Promise<void> {
+    const motivo = await this.confirmService.prompt(
+      'Solicitar devolución',
+      `¿Cuál es el motivo de la devolución del pedido #${o.id}?`,
+      'Ej: producto llegó dañado',
+      { labelAceptar: 'Solicitar devolución', tipo: 'warning' },
+    );
+    if (!motivo) return;
+    this.ordenService.solicitarDevolucion(o.id, motivo).subscribe({
+      next: () => {
+        this.toast.success('Devolución solicitada', `Se registró la solicitud de devolución del pedido #${o.id}.`);
+        this.ordenService.getMisOrdenes().subscribe();
+      },
+      error: () => this.toast.error('No se pudo completar la acción', 'Intenta nuevamente.'),
+    });
+  }
+
+  // ── Nuevo Pedido ──────────────────────────────────────────────
 
   abrirNuevoPedido(): void {
     this.carrito = [];
@@ -218,7 +282,7 @@ export class OrdenesComponent implements OnInit {
     this.http.get<any>(`${environment.services.usuarios}/me`).pipe(
       catchError(() => of(null)),
     ).subscribe(user => {
-      this.direccionId = user?.direccion?.id ?? null;
+      this.direccionId = user?.direccion?.id ?? (environment as any).direccionPredeterminadaId ?? null;
       this.cdr.detectChanges();
     });
     this.productoService.getAll().subscribe(productos => {

@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { CognitoAuthService } from '../../core/auth/cognito-auth.service';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -21,6 +22,7 @@ export class LoginComponent implements OnInit {
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
+    private readonly cognitoAuth: CognitoAuthService,
   ) {
     this.form = this.fb.group({
       correo: ['', [Validators.required, Validators.email]],
@@ -28,8 +30,12 @@ export class LoginComponent implements OnInit {
     });
   }
 
+  loginWithCognito(): void {
+    this.cognitoAuth.login();
+  }
+
   ngOnInit(): void {
-    if (this.authService.isLoggedIn()) {
+    if (this.authService.isLoggedIn() || this.cognitoAuth.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
     }
   }

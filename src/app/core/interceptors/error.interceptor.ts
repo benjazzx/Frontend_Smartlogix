@@ -4,11 +4,15 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
+import { CognitoAuthService } from '../auth/cognito-auth.service';
+
+const COGNITO_ONLY_PREFIXES = ['/api/ordenes', '/api/productos'];
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
-  const router      = inject(Router);
-  const authService = inject(AuthService);
-  const toast       = inject(ToastService);
+  const router       = inject(Router);
+  const authService  = inject(AuthService);
+  const cognitoAuth  = inject(CognitoAuthService);
+  const toast        = inject(ToastService);
 
   const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
 
@@ -24,23 +28,42 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           }
           break;
 
-        case 401:
+        case 401: {
+          const isCognitoOnlyRoute = COGNITO_ONLY_PREFIXES.some(p => req.url.includes(p));
+          if (!isCognitoOnlyRoute && cognitoAuth.isLoggedIn() && !authService.isLoggedIn()) break;
+          if (isCognitoOnlyRoute && !cognitoAuth.isLoggedIn()) {
+            toast.warning(
+              'Requiere sesión de AWS Cognito',
+              'Órdenes y Productos solo se pueden gestionar con "Iniciar sesión con AWS Cognito".',
+            );
+            break;
+          }
           toast.error('Sesión expirada', 'Inicia sesión nuevamente.');
           authService.logout();
           router.navigate(['/login']);
           break;
+        }
 
-        case 403:
+        case 403: {
+          const isCognitoOnlyRoute403 = COGNITO_ONLY_PREFIXES.some(p => req.url.includes(p));
+          const onlyCognitoSession = cognitoAuth.isLoggedIn() && !authService.isLoggedIn();
+
           if (authService.isMockSession()) {
             toast.warning(
               'Modo sin conexión',
               'Sesión local activa — cierra sesión e ingresa nuevamente con el servidor corriendo para guardar cambios.',
+            );
+          } else if (isWrite && onlyCognitoSession && !isCognitoOnlyRoute403) {
+            toast.warning(
+              'Sin permiso',
+              'Tu rol no tiene autorización para realizar esta acción.',
             );
           } else if (isWrite) {
             toast.error('Sin permiso', 'No tienes autorización para realizar esta acción.');
           }
           // GET con 403: silencioso — el componente maneja el null con catchError
           break;
+        }
 
         case 404:
           if (isWrite) toast.error('Recurso no encontrado', 'El elemento que intentas modificar no existe.');
