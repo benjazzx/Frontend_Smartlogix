@@ -81,7 +81,21 @@
           "defaultConfiguration": "development"
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "exclude": [
+              "src/**/*.integration.spec.ts"
+            ]
+          }
+        },
+        "test-integration": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "include": [
+              "src/**/*.integration.spec.ts"
+            ],
+            "runnerConfig": "vitest.integration.config.mts"
+          }
         }
       }
     }

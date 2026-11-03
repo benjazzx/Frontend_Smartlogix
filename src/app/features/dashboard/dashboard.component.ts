@@ -112,7 +112,10 @@ export class DashboardComponent implements OnInit {
       this.ordenService.getAll().subscribe();
       this.inventarioService.getBodegas().subscribe();
       this.productoService.getAll().subscribe();
-      this.usuarioService.getAll().subscribe();
+      // /api/users es solo para admin (el bodeguero recibía 403); el total se muestra solo al admin.
+      if (this.esAdmin) {
+        this.usuarioService.getAll().subscribe();
+      }
 
       this.inventarioService.bodegas$.subscribe(b => { this.bodegas = b; this.cdr.detectChanges(); });
       this.productoService.productos$.subscribe(p => { this.productos = p; this.cdr.detectChanges(); });
