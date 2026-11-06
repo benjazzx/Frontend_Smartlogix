@@ -18,6 +18,7 @@ interface CognitoIdTokenClaims {
 
 const VERIFIER_KEY = 'cognito_pkce_verifier';
 const STATE_KEY = 'cognito_pkce_state';
+const NONCE_KEY = 'cognito_oidc_nonce';
 const ID_TOKEN_KEY = 'cognito_id_token';
 const ACCESS_TOKEN_KEY = 'cognito_access_token';
 
@@ -35,9 +36,15 @@ export class CognitoAuthService {
     const verifier = this.randomString(64);
     const challenge = await this.sha256Base64Url(verifier);
     const state = this.randomString(32);
+    // OIDC nonce: distinto de state (que protege el paso del authorization code);
+    // el nonce viaja DENTRO del ID token y se valida tras el intercambio, para
+    // asegurar que el token emitido corresponde a esta sesión de login y no a un
+    // token robado/reproducido de otra sesión (ataque de replay).
+    const nonce = this.randomString(32);
 
     sessionStorage.setItem(VERIFIER_KEY, verifier);
     sessionStorage.setItem(STATE_KEY, state);
+    sessionStorage.setItem(NONCE_KEY, nonce);
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -45,6 +52,7 @@ export class CognitoAuthService {
       redirect_uri: environment.cognito.redirectUri,
       scope: environment.cognito.scope,
       state,
+      nonce,
       code_challenge: challenge,
       code_challenge_method: 'S256',
     });
@@ -74,8 +82,10 @@ export class CognitoAuthService {
 
     const expectedState = sessionStorage.getItem(STATE_KEY);
     const verifier = sessionStorage.getItem(VERIFIER_KEY);
+    const expectedNonce = sessionStorage.getItem(NONCE_KEY);
     sessionStorage.removeItem(STATE_KEY);
     sessionStorage.removeItem(VERIFIER_KEY);
+    sessionStorage.removeItem(NONCE_KEY);
 
     if (!verifier || !returnedState || returnedState !== expectedState) {
       console.error('Cognito: state inválido o code_verifier ausente — se descarta el callback.');
@@ -105,6 +115,13 @@ export class CognitoAuthService {
     }
 
     const tokens = await response.json();
+
+    const idTokenNonce = this.decodeJwtPayload(tokens.id_token)?.['nonce'];
+    if (!expectedNonce || idTokenNonce !== expectedNonce) {
+      console.error('Cognito: nonce del ID token no coincide — posible replay de un token ajeno, se descarta.');
+      return false;
+    }
+
     localStorage.setItem(ID_TOKEN_KEY, tokens.id_token);
     localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
     return true;
@@ -118,6 +135,10 @@ export class CognitoAuthService {
   getClaims(): CognitoIdTokenClaims | null {
     const token = this.getIdToken();
     if (!token) return null;
+    return this.decodeJwtPayload(token) as CognitoIdTokenClaims | null;
+  }
+
+  private decodeJwtPayload(token: string): Record<string, unknown> | null {
     try {
       const payload = token.split('.')[1];
       const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));

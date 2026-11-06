@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiGateway: 'https://iq86ivo531.execute-api.us-east-1.amazonaws.com',
+  apiGateway: 'http://localhost',
   cognito: {
     domain: 'https://smartlogix-427744211591.auth.us-east-1.amazoncognito.com',
     clientId: '4ocus6f6gtfnc2er0fg6mn9ib6',
